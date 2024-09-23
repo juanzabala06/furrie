@@ -10,6 +10,11 @@ import uvicorn
 from fastapi import FastAPI
 from fastapi.responses import RedirectResponse
 import config
+from pydantic import BaseModel
+
+from fastapi.middleware.cors import CORSMiddleware
+
+
 
 
 HOST = config.settings['host']
@@ -28,13 +33,25 @@ print(container)
 
 
 app = FastAPI()
-app.mount("/static", StaticFiles(directory="static"), name="static")
-templates = Jinja2Templates(directory="templates")
 
-@app.get("/", response_class=HTMLResponse)
-async def index(request: Request):
-    print('Request for index page received')
-    return templates.TemplateResponse('index.html', {"request": request})
+# Add CORS middleware to allow requests from your frontend
+app.add_middleware(
+    CORSMiddleware,
+    allow_origins=["http://localhost:5173", "https://furr.ie", "http://127.0.0.1:8000"],  # Replace with your frontend's URL
+    allow_credentials=True,
+    allow_methods=["*"],  # Allow all HTTP methods
+    allow_headers=["*"],  # Allow all headers
+)
+
+
+
+app.mount("/static", StaticFiles(directory="static"), name="static")
+
+
+# Serve the React/Vite frontend at the root URL
+@app.get("/")
+async def serve_frontend():
+    return FileResponse('static/index.html')
 
 @app.get('/favicon.ico')
 async def favicon():
@@ -42,15 +59,15 @@ async def favicon():
     file_path = './static/' + file_name
     return FileResponse(path=file_path, headers={'mimetype': 'image/vnd.microsoft.icon'})
 
-@app.post('/hello', response_class=HTMLResponse)
-async def hello(request: Request, name: str = Form(...)):
-    if name:
-        print('Request for hello page received with name=%s' % name)
-        return templates.TemplateResponse('hello.html', {"request": request, 'name':name})
-    else:
-        print('Request for hello page received with no name or blank name -- redirecting')
-        return RedirectResponse(request.url_for("index"), status_code=status.HTTP_302_FOUND)
-    
+# Define a Pydantic model for the request body
+class HelloRequest(BaseModel):
+    name: str
+
+@app.post("/hello")
+async def hello(request: HelloRequest):
+    name = request.name
+    print(f"Request to say hello to {name}")
+    return {"message": f"Hello, {name}!"}
 
 
 
