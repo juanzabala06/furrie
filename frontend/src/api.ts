@@ -1,7 +1,7 @@
 import axios from 'axios';
 
 const api = axios.create({
-  baseURL: 'http://localhost:8000', // Base URL of your FastAPI backend
+  baseURL: 'https://furr.ie', // Base URL of your FastAPI backend
   headers: {
     'Content-Type': 'application/json', // Ensures JSON payload
   },
